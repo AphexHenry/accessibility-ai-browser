@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Web Assistant — Orchestration Design</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;700&display=swap');
+
+    :root {
+      --bg: #0d0f12;
+      --surface: #141720;
+      --border: #222838;
+      --accent: #4f8ef7;
+      --accent2: #31d68e;
+      --accent3: #f7a84f;
+      --accent4: #e05a7a;
+      --text: #d4daf0;
+      --muted: #6b7494;
+      --code-bg: #0a0c10;
+      --tag-bg: #1a2040;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-weight: 300;
+      line-height: 1.7;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── NAV ── */
+    nav {
+      width: 240px;
+      min-width: 240px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 32px 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    nav .logo {
+      padding: 0 20px 28px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+
+    nav .logo span {
+      display: block;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    nav .logo h2 {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1.3;
+    }
+
+    nav a {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 20px;
+      text-decoration: none;
+      font-size: 12.5px;
+      color: var(--muted);
+      transition: color 0.15s, background 0.15s;
+      border-left: 2px solid transparent;
+    }
+
+    nav a:hover {
+      color: var(--text);
+      background: rgba(79, 142, 247, 0.06);
+      border-left-color: var(--accent);
+    }
+
+    nav .nav-section {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 16px 20px 6px;
+    }
+
+    /* ── MAIN ── */
+    main {
+      flex: 1;
+      padding: 60px 80px;
+      max-width: 960px;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      color: var(--accent);
+      margin-bottom: 40px;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      margin: 56px 0 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--accent);
+      margin: 28px 0 10px;
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 0.5px;
+    }
+
+    h4 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent3);
+      margin: 20px 0 8px;
+      font-family: 'IBM Plex Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    p {
+      margin-bottom: 14px;
+      font-size: 14.5px;
+    }
+
+    ul,
+    ol {
+      padding-left: 20px;
+      margin-bottom: 14px;
+      font-size: 14.5px;
+    }
+
+    li {
+      margin-bottom: 5px;
+    }
+
+    li::marker {
+      color: var(--accent);
+    }
+
+    code {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12.5px;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--accent2);
+    }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 24px;
+      overflow-x: auto;
+      margin: 16px 0 24px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: #a8bce0;
+    }
+
+    pre .kw {
+      color: #4f8ef7;
+    }
+
+    pre .str {
+      color: #31d68e;
+    }
+
+    pre .cmt {
+      color: #4a5270;
+    }
+
+    pre .fn {
+      color: #f7a84f;
+    }
+
+    pre .var {
+      color: #c4a8ff;
+    }
+
+    .tag {
+      display: inline-block;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .tag-blue {
+      background: rgba(79, 142, 247, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(79, 142, 247, 0.3);
+    }
+
+    .tag-green {
+      background: rgba(49, 214, 142, 0.12);
+      color: var(--accent2);
+      border: 1px solid rgba(49, 214, 142, 0.25);
+    }
+
+    .tag-amber {
+      background: rgba(247, 168, 79, 0.12);
+      color: var(--accent3);
+      border: 1px solid rgba(247, 168, 79, 0.25);
+    }
+
+    .tag-red {
+      background: rgba(224, 90, 122, 0.12);
+      color: var(--accent4);
+      border: 1px solid rgba(224, 90, 122, 0.25);
+    }
+
+    /* ── PIPELINE FLOW ── */
+    .pipeline {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin: 24px 0;
+    }
+
+    .pipe-step {
+      display: flex;
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .pipe-line {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 36px;
+      flex-shrink: 0;
+    }
+
+    .pipe-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .pipe-connector {
+      width: 2px;
+      flex: 1;
+      background: var(--border);
+      margin: 4px 0;
+      min-height: 20px;
+    }
+
+    .pipe-content {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 8px;
+    }
+
+    .pipe-content strong {
+      display: block;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .pipe-content p {
+      font-size: 13px;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    /* ── MODULE CARD ── */
+    .module-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px 28px;
+      margin: 24px 0;
+    }
+
+    .module-card .module-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .module-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .module-card h3 {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .io-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 12px 0;
+    }
+
+    .io-box {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 14px;
+    }
+
+    .io-box label {
+      display: block;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .io-box ul {
+      margin: 0;
+      padding-left: 14px;
+      font-size: 13px;
+    }
+
+    /* ── PROMPT BOX ── */
+    .prompt-box {
+      background: var(--code-bg);
+      border: 1px solid rgba(49, 214, 142, 0.25);
+      border-left: 3px solid var(--accent2);
+      border-radius: 6px;
+      padding: 16px 20px;
+      margin: 16px 0;
+    }
+
+    .prompt-box .prompt-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent2);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .prompt-box pre {
+      background: transparent;
+      border: none;
+      padding: 0;
+      margin: 0;
+      font-size: 13px;
+      color: #c4d4f0;
+    }
+
+    /* ── DECISION BRANCH ── */
+    .branch {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .branch-box {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+
+    .branch-box.yes {
+      border-top: 2px solid var(--accent2);
+    }
+
+    .branch-box.no {
+      border-top: 2px solid var(--accent4);
+    }
+
+    .branch-box label {
+      display: block;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .branch-box.yes label {
+      color: var(--accent2);
+    }
+
+    .branch-box.no label {
+      color: var(--accent4);
+    }
+
+    .branch-box p {
+      font-size: 13px;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    /* ── ACTION DICT ── */
+    .action-row {
+      display: grid;
+      grid-template-columns: 180px 1fr auto;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 8px;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .action-row code {
+      font-size: 12px;
+    }
+
+    .action-row .desc {
+      color: var(--muted);
+    }
+
+    /* ── WARNING BOX ── */
+    .warning {
+      background: rgba(247, 168, 79, 0.07);
+      border: 1px solid rgba(247, 168, 79, 0.25);
+      border-left: 3px solid var(--accent3);
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 16px 0;
+      font-size: 13.5px;
+    }
+
+    .warning strong {
+      color: var(--accent3);
+    }
+
+    /* ── SCROLL MARGIN ── */
+    section {
+      scroll-margin-top: 32px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav>
+    <div class="logo">
+      <span>Design Doc v0.1</span>
+      <h2>AI Web Assistant<br>Orchestration</h2>
+    </div>
+    <div class="nav-section">Overview</div>
+    <a href="#goal">Goal & Scope</a>
+    <a href="#pipeline">High-Level Pipeline</a>
+    <a href="#state">Internal State Model</a>
+
+    <div class="nav-section">Modules</div>
+    <a href="#m1">M1 · Scope Classifier</a>
+    <a href="#m2">M2 · HTML Simplifier</a>
+    <a href="#m3">M3 · Context Assembler</a>
+    <a href="#m4">M4 · Info Gap Checker</a>
+    <a href="#m5">M5 · Budget Enforcer</a>
+    <a href="#m6">M6 · Action Planner</a>
+    <a href="#m7">M7 · Response Generator</a>
+
+    <div class="nav-section">Reference</div>
+    <a href="#action-dict">Action Dictionary</a>
+    <a href="#prompts">All Prompts</a>
+    <a href="#concurrency">Concurrency Model</a>
+    <a href="#open-questions">Open Questions</a>
+  </nav>
+
+  <main>
+
+    <h1>AI Request Orchestration</h1>
+    <div class="subtitle">// browser.js · Engineering Design Spec</div>
+
+    <!-- ───────────────────────────────────── GOAL -->
+    <section id="goal">
+      <h2>Goal &amp; Scope</h2>
+      <p>When the user sends a message, the assistant must decide — before producing any visible output — which tools
+        and context pieces it actually needs. Running everything unconditionally is expensive and slow for a 2.5 GB
+        local model. The pipeline described here composes a chain of lightweight decisions that progressively load only
+        the context required.</p>
+      <p><strong>Primary question:</strong> Can I answer this from general knowledge, or do I need the current page? And
+        if I need the page, do I also need to <em>act</em> on it?</p>
+
+      <h4>Non-goals (v1)</h4>
+      <ul>
+        <li>No free-form JS execution — only the explicit action dictionary.</li>
+        <li>No multi-tab awareness — always operates on the active tab.</li>
+        <li>No model fine-tuning or LoRA — prompt engineering only.</li>
+      </ul>
+    </section>
+
+    <!-- ───────────────────────────────────── PIPELINE -->
+    <section id="pipeline">
+      <h2>High-Level Pipeline</h2>
+
+      <div class="pipeline">
+        <div class="pipe-step">
+          <div class="pipe-line">
+            <div class="pipe-dot" style="background:rgba(79,142,247,0.2);color:var(--accent);">1</div>
+            <div class="pipe-connector"></div>
+          </div>
+          <div class="pipe-content"><strong>Request Intake</strong>
+            <p>Receive message, attach tab metadata, short conversation context, memory snippets. Start
+              <code>request_id</code>.</p>
+          </div>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-line">
+            <div class="pipe-dot" style="background:rgba(79,142,247,0.2);color:var(--accent);">2</div>
+            <div class="pipe-connector"></div>
+          </div>
+          <div class="pipe-content"><strong>M1 · Scope Classifier</strong>
+            <p>One LLM call: <code>general</code> or <code>page_related</code>? Also fires memory lookup and
+              conversation extraction concurrently.</p>
+          </div>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-line">
+            <div class="pipe-dot" style="background:rgba(79,142,247,0.2);color:var(--accent);">3</div>
+            <div class="pipe-connector"></div>
+          </div>
+          <div class="pipe-content"><strong>General branch → M7 Response Generator</strong>
+            <p>No HTML work. Straight answer. Done.</p>
+          </div>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-line">
+            <div class="pipe-dot" style="background:rgba(247,168,79,0.25);color:var(--accent3);">4</div>
+            <div class="pipe-connector"></div>
+          </div>
+          <div class="pipe-content"><strong>M2 · HTML Simplifier</strong>
+            <p>Convert DOM to semantic Markdown, append a compact visible element map, and return size metrics for
+              budget control.</p>
+          </div>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-line">
+            <div class="pipe-dot" style="background:rgba(247,168,79,0.25);color:var(--accent3);">5</div>
+            <div class="pipe-connector"></div>
+          </div>
+          <div class="pipe-content"><strong>M3 · Context Assembler + M4 · Info Gap Checker</strong>
+            <p>Merge memory, conversation facts, HTML artifact. Check if anything is still missing. Loop with follow-up
+              question if needed.</p>
+          </div>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-line">
+            <div class="pipe-dot" style="background:rgba(247,168,79,0.25);color:var(--accent3);">6</div>
+            <div class="pipe-connector"></div>
+          </div>
+          <div class="pipe-content"><strong>M5 · Budget Enforcer</strong>
+            <p>Token count assembled context. If over budget: aggressive reduction → relevance selector pass → snippets
+              only.</p>
+          </div>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-line">
+            <div class="pipe-dot" style="background:rgba(49,214,142,0.2);color:var(--accent2);">7</div>
+            <div class="pipe-connector"></div>
+          </div>
+          <div class="pipe-content"><strong>M6 · Action Planner</strong>
+            <p>Does the request require browser actions? Map to action dictionary, validate, execute, capture result.
+            </p>
+          </div>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-line">
+            <div class="pipe-dot" style="background:rgba(49,214,142,0.2);color:var(--accent2);">8</div>
+          </div>
+          <div class="pipe-content"><strong>M7 · Response Generator</strong>
+            <p>Final answer assembled from all prior outputs. Optionally includes action trace.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────────────────────────────────── STATE -->
+    <section id="state">
+      <h2>Internal State Model</h2>
+
+      <h3>Per-Request State</h3>
+      <pre><span class="cmt">// Created at request intake, mutated by each module</span>
+{
+  <span class="var">request_id</span>:          <span class="str">"req_&lt;uuid&gt;"</span>,
+  <span class="var">timestamp</span>:           <span class="fn">Date.now()</span>,
+  <span class="var">tab_id</span>:              <span class="str">"&lt;active tab&gt;"</span>,
+  <span class="var">user_message</span>:        <span class="str">"..."</span>,
+
+  <span class="cmt">// Set by M1</span>
+  <span class="var">scope</span>:               <span class="str">"general" | "page_related"</span>,
+  <span class="var">scope_confidence</span>:    <span class="fn">0.0–1.0</span>,
+  <span class="var">scope_rationale</span>:     <span class="str">"..."</span>,        <span class="cmt">// for debug</span>
+
+  <span class="cmt">// Set by M2</span>
+  <span class="var">page_snapshot</span>:       <span class="str">"semantic markdown + visible element map" | null</span>,
+  <span class="var">snapshot_metrics</span>:    { <span class="var">markdownLength</span>: <span class="fn">0</span>, <span class="var">elementMapLength</span>: <span class="fn">0</span>, <span class="var">elementCount</span>: <span class="fn">0</span> },
+  <span class="var">snapshot_token_estimate</span>: <span class="fn">0</span>,
+
+  <span class="cmt">// Set by M3/M4</span>
+  <span class="var">context_facts</span>:       [],           <span class="cmt">// [{ source, content }]</span>
+  <span class="var">missing_info</span>:        <span class="fn">false</span>,
+  <span class="var">followup_questions</span>:  [],
+  <span class="var">followup_answers</span>:    [],
+
+  <span class="cmt">// Set by M5</span>
+  <span class="var">budget_enforced</span>:     <span class="fn">false</span>,
+  <span class="var">relevant_snippets</span>:   [],           <span class="cmt">// segments kept after budget cut</span>
+
+  <span class="cmt">// Set by M6</span>
+  <span class="var">action_required</span>:     <span class="fn">false</span>,
+  <span class="var">action_plan</span>:         [],           <span class="cmt">// [{ action, args, status, result }]</span>
+
+  <span class="cmt">// Set by M7</span>
+  <span class="var">final_response_id</span>:   <span class="str">"resp_&lt;uuid&gt;"</span>,
+}</pre>
+
+      <h3>Per-Tab Page Cache</h3>
+      <pre>{
+  <span class="var">page_fingerprint</span>:  <span class="str">"&lt;hash of URL + snapshot inputs&gt;"</span>,
+  <span class="var">page_snapshot</span>:     <span class="str">"semantic markdown + visible element map"</span>,
+  <span class="var">token_estimate</span>:    <span class="fn">4200</span>,
+  <span class="var">created_at</span>:        <span class="fn">Date.now()</span>,
+  <span class="var">ttl_ms</span>:            <span class="fn">30_000</span>,      <span class="cmt">// 30 s default; 0 for static pages</span>
+}</pre>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════ MODULES ══ -->
+
+    <!-- M1 -->
+    <section id="m1">
+      <h2>M1 · Scope Classifier</h2>
+      <p>The cheapest inference call in the pipeline. Runs immediately after intake, <strong>in parallel</strong> with
+        memory lookup and conversation extraction.</p>
+
+      <div class="module-card">
+        <div class="module-header">
+          <div class="module-icon" style="background:rgba(79,142,247,0.12);">🔍</div>
+          <div>
+            <h3 style="margin:0;">classifyScope(request, pageMetadata)</h3>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px;">Output: <code>scope</code> +
+              <code>confidence</code> + <code>rationale</code></div>
+          </div>
+        </div>
+
+        <div class="io-grid">
+          <div class="io-box">
+            <label>Inputs</label>
+            <ul>
+              <li>User message</li>
+              <li>Page URL + title</li>
+              <li>Last 2 conversation turns</li>
+            </ul>
+          </div>
+          <div class="io-box">
+            <label>Outputs</label>
+            <ul>
+              <li><code>scope: "general" | "page_related"</code></li>
+              <li><code>confidence: 0.0–1.0</code></li>
+              <li><code>rationale: string</code></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="prompt-box">
+        <div class="prompt-label">📝 Prompt — M1 Scope Classifier</div>
+        <pre>You are a request router for a browser assistant.
+Classify the user's request into one of two scopes:
+
+- "general": answerable from general knowledge alone, no need to see the page.
+- "page_related": requires understanding the current page's content, structure, or state.
+
+Page context (for reference only, do not analyse content):
+URL: {{url}}
+Title: {{title}}
+
+Recent conversation (last 2 turns):
+{{conversation_snippet}}
+
+User request: "{{user_message}}"
+
+Respond with a JSON object only, no explanation:
+{
+  "scope": "general" | "page_related",
+  "confidence": 0.0-1.0,
+  "rationale": "one sentence"
+}
+
+Signals for page_related:
+- Words like "this", "here", "this button", "this section", "on this page"
+- Accessibility or layout questions about current content
+- Requests to interact with, fill, click, or modify elements
+- Questions whose answer depends on visible DOM content
+
+Signals for general:
+- Conceptual or standards questions independent of any page
+- Coding help, explanations, comparisons not referencing current content
+- The page URL/title is clearly irrelevant to the question</pre>
+      </div>
+
+      <h4>Confidence threshold policy</h4>
+      <p>If <code>confidence &lt; 0.65</code> and scope is <code>general</code>, treat as <code>page_related</code> to
+        avoid missing context. Log the ambiguous case for analytics. This is conservative by design — HTML acquisition
+        is cheap relative to a wrong answer.</p>
+
+      <div class="branch">
+        <div class="branch-box yes">
+          <label>scope = general</label>
+          <p>Skip M2–M6. Go directly to M7 with message + memory facts only.</p>
+        </div>
+        <div class="branch-box no">
+          <label>scope = page_related</label>
+          <p>Continue to M2. Also fire M3 context assembly in parallel (memory + conversation — no HTML yet).</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- M2 -->
+    <section id="m2">
+      <h2>M2 · HTML Simplifier</h2>
+      <p>Builds an AI-friendly page snapshot from the live DOM. This is a JS pipeline running in the renderer process
+        (no LLM). The result is semantic Markdown plus a visible element map, then fed to M3/M5/M6.</p>
+
+      <div class="module-card">
+        <div class="module-header">
+          <div class="module-icon" style="background:rgba(247,168,79,0.1);">⚙️</div>
+          <div>
+            <h3 style="margin:0;">simplifyCurrentPage(webContents, currentUrl) → PageSnapshot</h3>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px;">Pure JS pipeline via
+              <code>executeJavaScript</code>; optional cache is upstream.</div>
+          </div>
+        </div>
+
+        <h4>Simplification pipeline (actual implementation order)</h4>
+        <ol>
+          <li>Load <code>dom-to-semantic-markdown/dist/browser/bundle.js</code> once and cache the bundle content in
+            main-process memory.</li>
+          <li>In the page context, read <code>document.documentElement.outerHTML</code>; if empty, return empty
+            markdown.</li>
+          <li>Convert HTML to Markdown with:
+            <code>extractMainContent: true</code>,
+            <code>refifyUrls: true</code>,
+            <code>includeMetaData: "basic"</code>,
+            <code>websiteDomain: origin(currentUrl)</code>.
+          </li>
+          <li>Build a visible element map from interactive/semantic selectors:
+            <code>a, button, input, select, textarea, label, form, [role], [aria-label], [name], [id], [class]</code>.
+          </li>
+          <li>For each candidate: keep only visible elements
+            (<code>display</code>/<code>visibility</code>/<code>opacity</code> + non-zero bounding rect), then emit one
+            compact line:
+            <code>tag#id.class1.class2 name="" type="" role="" aria-label="" href="" text=""</code>.
+          </li>
+          <li>Apply hard caps to bound size:
+            <code>MAX_ELEMENTS=350</code>,
+            <code>MAX_CLASSES=4</code>,
+            <code>MAX_TEXT_LENGTH=70</code>,
+            deduplicate identical lines.
+          </li>
+          <li>Append map as <code>## Visible Element Map</code> under the semantic markdown and return metrics:
+            <code>markdownLength</code>, <code>elementMapLength</code>, <code>elementCount</code>.
+          </li>
+        </ol>
+
+        <div class="io-grid">
+          <div class="io-box">
+            <label>Output shape (PageSnapshot)</label>
+            <ul>
+              <li><code>markdown: string</code> (semantic markdown + optional element map)</li>
+              <li><code>markdownLength: number</code></li>
+              <li><code>elementMapLength: number</code></li>
+              <li><code>elementCount: number</code></li>
+            </ul>
+          </div>
+          <div class="io-box">
+            <label>Important behavior</label>
+            <ul>
+              <li>Throws if final markdown is empty</li>
+              <li>Element map is visibility-aware and deduplicated</li>
+              <li>No explicit DOM fingerprinting inside M2</li>
+              <li>Caching strategy is handled outside this module</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="warning">
+        <strong>⚠ Do not pass raw outerHTML to the model.</strong> M2 already emits a compressed snapshot, but large
+        pages can still exceed budget. M5 must trim snapshot sections deterministically before M7.
+      </div>
+    </section>
+
+    <!-- M3 -->
+    <section id="m3">
+      <h2>M3 · Context Assembler</h2>
+      <p>Collects all non-HTML context: memory snippets, conversation facts (excluding raw HTML messages), and
+        user-provided follow-up answers. Runs partially in parallel with M2.</p>
+
+      <div class="module-card">
+        <div class="module-header">
+          <div class="module-icon" style="background:rgba(79,142,247,0.1);">🗂️</div>
+          <div>
+            <h3 style="margin:0;">assembleContext(request) → ContextBundle</h3>
+          </div>
+        </div>
+
+        <h4>Sub-steps (run in parallel where possible)</h4>
+
+        <ol>
+          <li><strong>Memory lookup</strong> — vector or keyword search over stored user facts. Return top-3 relevant
+            snippets. Each snippet: <code>{ source: "memory", key, content, relevance_score }</code>.</li>
+          <li><strong>Conversation extraction</strong> — scan last N turns (exclude any turn containing raw HTML).
+            Extract factual statements relevant to the current request using the prompt below. Return deduplicated list.
+          </li>
+          <li><strong>Follow-up answers</strong> — if M4 previously triggered a follow-up, attach the stored user answer
+            as a <code>{ source: "user_clarification", content }</code> fact.</li>
+        </ol>
+
+        <div class="prompt-box">
+          <div class="prompt-label">📝 Prompt — Conversation Fact Extractor</div>
+          <pre>You are extracting factual information from a conversation history.
+Goal: find facts that are relevant to answering the user's current request.
+Ignore any turns that contain raw HTML markup.
+
+Current user request: "{{user_message}}"
+
+Conversation history (oldest first):
+{{conversation_history}}
+
+Return a JSON array of extracted facts. Each fact:
+{ "content": "short factual statement", "turn_index": N }
+
+Return empty array [] if nothing is relevant.
+No explanation, JSON only.</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- M4 -->
+    <section id="m4">
+      <h2>M4 · Info Gap Checker</h2>
+      <p>After M3 assembles context (and M2 provides the HTML artifact), M4 asks: <em>is there still something missing
+          that would make the answer unreliable?</em> This runs as an LLM call with the assembled context but
+        <strong>without</strong> the HTML (to keep it cheap).</p>
+
+      <div class="module-card">
+        <div class="module-header">
+          <div class="module-icon" style="background:rgba(224,90,122,0.1);">❓</div>
+          <div>
+            <h3 style="margin:0;">checkInfoGap(request, contextBundle) → GapResult</h3>
+          </div>
+        </div>
+
+        <div class="prompt-box">
+          <div class="prompt-label">📝 Prompt — M4 Info Gap Checker</div>
+          <pre>You are deciding whether you have enough information to answer a user's request reliably.
+
+User request: "{{user_message}}"
+
+Available context facts:
+{{context_facts_list}}
+
+Page: {{url}} — {{title}}
+
+Answer with a JSON object only:
+{
+  "has_enough_info": true | false,
+  "missing": "brief description of what is missing, or null",
+  "followup_question": "one focused question to ask the user, or null"
+}
+
+Rules:
+- If the request is clear and the available facts are sufficient → has_enough_info: true
+- Only request missing information that is (a) genuinely needed and (b) the user is likely to know
+- Ask at most ONE question. Make it specific and short.
+- Do not ask about page content — the page HTML will be provided separately.</pre>
+        </div>
+
+        <h4>Loop behaviour</h4>
+        <p>If <code>has_enough_info = false</code>: surface <code>followup_question</code> to the user. Wait for answer.
+          Store answer in state as a fact. Re-run M4 once. If still missing after one retry → proceed anyway, flag
+          uncertainty in M7.</p>
+
+        <div class="branch">
+          <div class="branch-box yes">
+            <label>has_enough_info = true</label>
+            <p>Continue to M5.</p>
+          </div>
+          <div class="branch-box no">
+            <label>has_enough_info = false</label>
+            <p>Emit follow-up question to UI. On user response, store and loop once. Then continue to M5 regardless.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- M5 -->
+    <section id="m5">
+      <h2>M5 · Budget Enforcer</h2>
+      <p>Ensures the full prompt sent to M7 stays within the model's context window. The model is local (~2.5 GB) —
+        assume <strong>4096 tokens</strong> total budget as a conservative default (adjust for your specific model).</p>
+
+      <div class="module-card">
+        <div class="module-header">
+          <div class="module-icon" style="background:rgba(49,214,142,0.1);">📐</div>
+          <div>
+            <h3 style="margin:0;">enforceContextBudget(state) → FinalContext</h3>
+          </div>
+        </div>
+
+        <h4>Budget allocation (tokens)</h4>
+        <pre><span class="cmt">// Approximate allocation for a 4096-token budget</span>
+{
+  system_prompt:   <span class="fn">300</span>,   <span class="cmt">// fixed assistant persona + rules</span>
+  user_message:    <span class="fn">150</span>,   <span class="cmt">// the actual request</span>
+  context_facts:   <span class="fn">300</span>,   <span class="cmt">// memory + conversation extracts</span>
+  action_schema:   <span class="fn">200</span>,   <span class="cmt">// action dictionary excerpt (if M6 detected actions)</span>
+  html_budget:     <span class="fn">2800</span>,  <span class="cmt">// remaining for HTML</span>
+  response_reserve:<span class="fn">346</span>,  <span class="cmt">// max_new_tokens reserved</span>
+}</pre>
+
+        <h4>Reduction cascade</h4>
+        <ol>
+          <li>Estimate tokens from the full snapshot (<code>semantic markdown + visible element map</code>). If within
+            <code>html_budget</code> → pass as-is.</li>
+          <li>If over budget: trim the element map first (keep high-signal lines containing <code>id</code>,
+            <code>name</code>, <code>aria-label</code>, <code>role</code>, links, and controls).</li>
+          <li>If still over budget: run <strong>Relevance Selector</strong> over chunked markdown sections and keep
+            returned section IDs only.</li>
+          <li>If still too large: pass headings + top-ranked sections + a compact control list summary.</li>
+        </ol>
+
+        <div class="prompt-box">
+          <div class="prompt-label">📝 Prompt — M5 Relevance Selector</div>
+          <pre>The following page is too long to include in full. 
+Select the sections most relevant to answering the user's request.
+
+User request: "{{user_message}}"
+
+Page snapshot sections (each has an id):
+{{sectioned_snapshot}}
+
+Return a JSON array of section ids to keep, most important first:
+["section-id-1", "section-id-2", ...]
+
+Keep only what is truly needed. Prefer: forms, main content, visible controls, links/buttons
+referenced by the request. Omit: footers, cookie banners, ads, sidebars
+unless directly referenced.</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- M6 -->
+    <section id="m6">
+      <h2>M6 · Action Planner</h2>
+      <p>Determines whether the request requires performing browser operations (clicking, filling, highlighting, etc.)
+        and maps the intent to the safe action dictionary.</p>
+
+      <div class="module-card">
+        <div class="module-header">
+          <div class="module-icon" style="background:rgba(247,168,79,0.1);">⚡</div>
+          <div>
+            <h3 style="margin:0;">planActions(request, pageSnapshot) → ActionPlan</h3>
+          </div>
+        </div>
+
+        <div class="prompt-box">
+          <div class="prompt-label">📝 Prompt — M6 Action Planner</div>
+          <pre>You are a browser action planner. 
+Decide if the user's request requires performing actions on the page, 
+and if so, produce a step-by-step action plan using only the allowed actions.
+
+User request: "{{user_message}}"
+
+Page snapshot (semantic markdown + visible element map):
+{{page_snapshot}}
+
+Allowed actions (use these names exactly):
+{{action_dictionary_schema}}
+
+Respond with JSON only:
+{
+  "action_required": true | false,
+  "plan": [
+    {
+      "step": 1,
+      "action": "action_name",
+      "args": { ... },
+      "rationale": "why this step"
+    }
+  ]
+}
+
+Rules:
+- If no action is needed (explanation/analysis only) → action_required: false, plan: []
+- Use only actions from the allowed list. Do not invent new ones.
+- Prefer element references coming from the visible element map (id/name/aria-label/role/text).
+- Keep plans minimal. Do not add steps "just in case".</pre>
+        </div>
+
+        <h4>Execution</h4>
+        <p>Each step in the plan is validated against the action dictionary schema before execution. Argument types and
+          selector safety are checked. On execution error, the step is skipped and its error is recorded in
+          <code>action_plan[i].result</code>. A rollback is attempted if available.</p>
+      </div>
+    </section>
+
+    <!-- M7 -->
+    <section id="m7">
+      <h2>M7 · Response Generator</h2>
+      <p>The final LLM call. This is the only call the user <em>sees</em>. All previous modules are invisible
+        bookkeeping. Construct the prompt carefully — it is the most expensive call.</p>
+
+      <div class="module-card">
+        <div class="module-header">
+          <div class="module-icon" style="background:rgba(49,214,142,0.12);">💬</div>
+          <div>
+            <h3 style="margin:0;">generateResponse(state) → FinalResponse</h3>
+          </div>
+        </div>
+
+        <div class="prompt-box">
+          <div class="prompt-label">📝 System Prompt — M7 Response Generator (base)</div>
+          <pre>You are a helpful browser assistant embedded in a web browser.
+You have access to the current page content and can perform safe browser actions.
+Be concise. Prefer short answers unless depth is clearly needed.
+Never reveal your internal reasoning steps or tool names.
+If you performed actions on the page, mention what you did briefly at the end.</pre>
+        </div>
+
+        <div class="prompt-box">
+          <div class="prompt-label">📝 User Turn — M7 (page_related, with actions)</div>
+          <pre>[CONTEXT FACTS]
+{{context_facts}}
+
+[PAGE: {{url}} — {{title}}]
+{{page_snapshot_or_snippets}}
+
+[ACTIONS PERFORMED]
+{{action_results}}
+(empty if no actions were taken)
+
+[USER REQUEST]
+{{user_message}}
+
+Answer the user's request. 
+If information is uncertain due to incomplete page context, say so briefly.
+If actions were performed, confirm what was done.</pre>
+        </div>
+
+        <div class="prompt-box">
+          <div class="prompt-label">📝 User Turn — M7 (general scope)</div>
+          <pre>[CONTEXT FACTS]
+{{context_facts}}
+
+[USER REQUEST]
+{{user_message}}</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────────────────────────────────── ACTION DICT -->
+    <section id="action-dict">
+      <h2>Action Dictionary (v1)</h2>
+      <p>All browser operations are enumerated here. M6 may only reference these by name. No free-form JS execution.</p>
+
+      <div class="action-row">
+        <code>highlight(selector)</code>
+        <span class="desc">Add a visible highlight outline to a matched element.</span>
+        <span class="tag tag-green">safe</span>
+      </div>
+      <div class="action-row">
+        <code>scrollTo(selector)</code>
+        <span class="desc">Smooth-scroll the page so the element is visible.</span>
+        <span class="tag tag-green">safe</span>
+      </div>
+      <div class="action-row">
+        <code>focusElement(selector)</code>
+        <span class="desc">Move browser focus to an interactive element.</span>
+        <span class="tag tag-green">safe</span>
+      </div>
+      <div class="action-row">
+        <code>fillInput(selector, value)</code>
+        <span class="desc">Set the value of a text input or textarea.</span>
+        <span class="tag tag-amber">confirm</span>
+      </div>
+      <div class="action-row">
+        <code>clickElement(selector)</code>
+        <span class="desc">Simulate a click on a button, link, or checkbox.</span>
+        <span class="tag tag-amber">confirm</span>
+      </div>
+      <div class="action-row">
+        <code>selectOption(selector, value)</code>
+        <span class="desc">Select an option in a &lt;select&gt; element.</span>
+        <span class="tag tag-amber">confirm</span>
+      </div>
+      <div class="action-row">
+        <code>injectCSS(css)</code>
+        <span class="desc">Temporarily inject CSS for previewing style changes. Reverted on next navigation.</span>
+        <span class="tag tag-amber">confirm</span>
+      </div>
+      <div class="action-row">
+        <code>removeHighlights()</code>
+        <span class="desc">Remove all assistant-added highlights.</span>
+        <span class="tag tag-green">safe</span>
+      </div>
+      <div class="action-row">
+        <code>copyToClipboard(text)</code>
+        <span class="desc">Write a string to the system clipboard.</span>
+        <span class="tag tag-green">safe</span>
+      </div>
+
+      <p style="margin-top:16px;font-size:13px;color:var(--muted);"><span class="tag tag-green">safe</span> = execute
+        immediately. <span class="tag tag-amber">confirm</span> = show confirmation UI before executing if the user did
+        not explicitly request the action.</p>
+
+      <h3>Action schema (M6 receives this)</h3>
+      <pre>[
+  { <span class="var">"name"</span>: <span class="str">"highlight"</span>,       <span class="var">"args"</span>: { <span class="str">"selector"</span>: <span class="str">"string (CSS selector)"</span> } },
+  { <span class="var">"name"</span>: <span class="str">"scrollTo"</span>,        <span class="var">"args"</span>: { <span class="str">"selector"</span>: <span class="str">"string"</span> } },
+  { <span class="var">"name"</span>: <span class="str">"focusElement"</span>,    <span class="var">"args"</span>: { <span class="str">"selector"</span>: <span class="str">"string"</span> } },
+  { <span class="var">"name"</span>: <span class="str">"fillInput"</span>,       <span class="var">"args"</span>: { <span class="str">"selector"</span>: <span class="str">"string"</span>, <span class="str">"value"</span>: <span class="str">"string"</span> } },
+  { <span class="var">"name"</span>: <span class="str">"clickElement"</span>,    <span class="var">"args"</span>: { <span class="str">"selector"</span>: <span class="str">"string"</span> } },
+  { <span class="var">"name"</span>: <span class="str">"selectOption"</span>,    <span class="var">"args"</span>: { <span class="str">"selector"</span>: <span class="str">"string"</span>, <span class="str">"value"</span>: <span class="str">"string"</span> } },
+  { <span class="var">"name"</span>: <span class="str">"injectCSS"</span>,       <span class="var">"args"</span>: { <span class="str">"css"</span>: <span class="str">"string (raw CSS)"</span> } },
+  { <span class="var">"name"</span>: <span class="str">"removeHighlights"</span>, <span class="var">"args"</span>: {} },
+  { <span class="var">"name"</span>: <span class="str">"copyToClipboard"</span>,  <span class="var">"args"</span>: { <span class="str">"text"</span>: <span class="str">"string"</span> } }
+]</pre>
+    </section>
+
+    <!-- ───────────────────────────────────── ALL PROMPTS -->
+    <section id="prompts">
+      <h2>All Prompts — Summary</h2>
+
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border);">
+              <th
+                style="text-align:left;padding:10px 14px;color:var(--muted);font-weight:500;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;">
+                MODULE</th>
+              <th
+                style="text-align:left;padding:10px 14px;color:var(--muted);font-weight:500;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;">
+                PURPOSE</th>
+              <th
+                style="text-align:left;padding:10px 14px;color:var(--muted);font-weight:500;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;">
+                EST. TOKENS</th>
+              <th
+                style="text-align:left;padding:10px 14px;color:var(--muted);font-weight:500;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;">
+                OUTPUT FORMAT</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:10px 14px;"><code>M1 Scope</code></td>
+              <td style="padding:10px 14px;color:var(--muted);">general vs page_related</td>
+              <td style="padding:10px 14px;"><span class="tag tag-green">~200</span></td>
+              <td style="padding:10px 14px;">JSON</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:10px 14px;"><code>M3 Conv. Extract</code></td>
+              <td style="padding:10px 14px;color:var(--muted);">pull facts from history</td>
+              <td style="padding:10px 14px;"><span class="tag tag-green">~300</span></td>
+              <td style="padding:10px 14px;">JSON array</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:10px 14px;"><code>M4 Gap Check</code></td>
+              <td style="padding:10px 14px;color:var(--muted);">detect missing info</td>
+              <td style="padding:10px 14px;"><span class="tag tag-amber">~400</span></td>
+              <td style="padding:10px 14px;">JSON</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:10px 14px;"><code>M5 Relevance</code></td>
+              <td style="padding:10px 14px;color:var(--muted);">select snapshot sections</td>
+              <td style="padding:10px 14px;"><span class="tag tag-amber">~600</span></td>
+              <td style="padding:10px 14px;">JSON array of ids</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:10px 14px;"><code>M6 Action Plan</code></td>
+              <td style="padding:10px 14px;color:var(--muted);">produce action steps</td>
+              <td style="padding:10px 14px;"><span class="tag tag-amber">~800</span></td>
+              <td style="padding:10px 14px;">JSON</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 14px;"><code>M7 Response</code></td>
+              <td style="padding:10px 14px;color:var(--muted);">user-facing answer</td>
+              <td style="padding:10px 14px;"><span class="tag tag-red">~3500</span></td>
+              <td style="padding:10px 14px;">natural language</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p style="margin-top:16px;font-size:13px;color:var(--muted);">Total inference calls per request:
+        <strong>1</strong> (general) or <strong>2–5</strong> (page_related, depending on budget and follow-up). M1, M3,
+        M4, M6 are cheap classifiers; M7 carries the cost.</p>
+    </section>
+
+    <!-- ───────────────────────────────────── CONCURRENCY -->
+    <section id="concurrency">
+      <h2>Concurrency Model</h2>
+      <pre><span class="cmt">// Pseudocode showing parallel vs sequential steps</span>
+
+<span class="kw">async function</span> <span class="fn">handleRequest</span>(request) {
+
+  <span class="cmt">// ── PHASE 1: always-parallel ──────────────────────────</span>
+  <span class="kw">const</span> [scope, memoryFacts, convFacts, cachedSnapshot] = <span class="kw">await</span> <span class="fn">Promise.all</span>([
+    <span class="fn">M1_classifyScope</span>(request),          <span class="cmt">// LLM call</span>
+    <span class="fn">lookupMemory</span>(request.message),       <span class="cmt">// vector search</span>
+    <span class="fn">extractConvFacts</span>(request.message),   <span class="cmt">// LLM call</span>
+    <span class="fn">getPageCache</span>(request.tab_id),        <span class="cmt">// cache read (optional snapshot cache)</span>
+  ]);
+
+  <span class="kw">if</span> (scope === <span class="str">"general"</span>) {
+    <span class="kw">return</span> <span class="fn">M7_respond</span>({ request, memoryFacts, convFacts });
+  }
+
+  <span class="cmt">// ── PHASE 2: page snapshot acquisition (sequential) ───</span>
+  <span class="kw">const</span> pageSnapshot = cachedSnapshot ?? <span class="kw">await</span> <span class="fn">M2_simplifyCurrentPage</span>(request.tab_id, request.url);
+
+  <span class="cmt">// ── PHASE 3: gap check + budget in parallel ───────────</span>
+  <span class="kw">const</span> contextBundle = <span class="fn">M3_assembleContext</span>({ memoryFacts, convFacts });
+  <span class="kw">const</span> gap = <span class="kw">await</span> <span class="fn">M4_checkGap</span>(request, contextBundle);
+
+  <span class="kw">if</span> (!gap.has_enough_info) {
+    <span class="kw">const</span> answer = <span class="kw">await</span> <span class="fn">askUser</span>(gap.followup_question);
+    contextBundle.facts.<span class="fn">push</span>({ source: <span class="str">"user_clarification"</span>, content: answer });
+    <span class="cmt">// re-check once, then continue regardless</span>
+  }
+
+  <span class="cmt">// ── PHASE 4: budget + actions in parallel ─────────────</span>
+  <span class="kw">const</span> [finalContext, actionPlan] = <span class="kw">await</span> <span class="fn">Promise.all</span>([
+    <span class="fn">M5_enforceBudget</span>({ pageSnapshot, contextBundle, request }),
+    <span class="fn">M6_planActions</span>(request, pageSnapshot),
+  ]);
+
+  <span class="kw">const</span> actionResults = <span class="kw">await</span> <span class="fn">executeActionPlan</span>(actionPlan);
+
+  <span class="cmt">// ── PHASE 5: final response ───────────────────────────</span>
+  <span class="kw">return</span> <span class="fn">M7_respond</span>({ request, finalContext, actionResults });
+}</pre>
+    </section>
+
+    <!-- ───────────────────────────────────── OPEN QUESTIONS -->
+    <section id="open-questions">
+      <h2>Open Questions</h2>
+
+      <h3>Confidence threshold (M1)</h3>
+      <p>Current proposal: <code>0.65</code>. Below that, default to <code>page_related</code>. Track false-positive
+        rate in analytics to tune over time. A too-low threshold wastes M2 work; too high produces wrong-scope misses.
+      </p>
+
+      <h3>Token budget</h3>
+      <p>The <code>charCount / 4</code> estimate is fast but inaccurate for CJK text or code-heavy pages. Consider
+        running the model's actual tokenizer (if accessible from Node) as an optional accurate pass for pages near the
+        budget boundary (±15%).</p>
+
+      <h3>Follow-up: single vs multi-question</h3>
+      <p>Keep it single-question for v1. Multi-question forms feel interrogative and slow. If the single question
+        doesn't resolve the gap, proceed with uncertainty flagged in M7's response.</p>
+
+      <h3>Page cache TTL</h3>
+      <p>30 seconds works for most SPAs. Consider listening to <code>MutationObserver</code> for significant DOM changes
+        and invalidating the cache proactively rather than relying purely on TTL.</p>
+
+      <h3>v1 action set</h3>
+      <p>The 9 actions above cover the most common browser assistant tasks. Defer <code>navigateTo(url)</code> and
+        <code>submitForm(selector)</code> to v2 — they have higher blast radius and need stricter confirmation flows.
+      </p>
+
+      <h3>Model context limit</h3>
+      <p>The 4096-token budget assumes a mid-range local model. If your model supports 8k or 16k context, adjust the
+        <code>html_budget</code> allocation proportionally. The module structure remains identical.</p>
+    </section>
+
+  </main>
+</body>
+
+</html>

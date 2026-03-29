@@ -25,5 +25,7 @@ contextBridge.exposeInMainWorld('api', {
     setupModel: (config) => ipcRenderer.invoke('ai:setupModel', config),
     useExistingModel: (modelPath) => ipcRenderer.invoke('ai:useExistingModel', modelPath),
     setRuntimeBinaryPath: (binaryPath) => ipcRenderer.invoke('ai:setRuntimeBinaryPath', binaryPath),
+    setOrchestrationEnabled: (enabled) => ipcRenderer.invoke('ai:setOrchestrationEnabled', enabled),
+    getOrchestrationMetrics: () => ipcRenderer.invoke('ai:getOrchestrationMetrics'),
   },
 });

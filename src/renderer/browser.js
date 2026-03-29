@@ -22,6 +22,9 @@ const btnSend        = document.getElementById('btn-send');
 /* ── State ───────────────────────────────────────────────────────────────── */
 
 let sidebarOpen = false;
+const conversation = [];
+let pendingFollowupRequest = null;
+let pendingActionConfirmRequest = null;
 
 /* ── Navigation ──────────────────────────────────────────────────────────── */
 
@@ -127,11 +130,64 @@ composer.addEventListener('submit', async (e) => {
   appendMessage('user', prompt);
 
   const thinking = appendMessage('assistant typing', '');
+  conversation.push({ role: 'user', content: prompt });
 
   try {
-    const result = await window.api.ai.chat([{ role: 'user', content: prompt }]);
+    let payload = {
+      message: prompt,
+      conversation: conversation.slice(-10),
+      followupCount: 0,
+      confirmActions: false,
+    };
+
+    if (pendingFollowupRequest) {
+      payload = {
+        ...pendingFollowupRequest,
+        followupAnswer: prompt,
+      };
+      pendingFollowupRequest = null;
+    } else if (pendingActionConfirmRequest) {
+      const normalized = prompt.toLowerCase();
+      const approved = ['yes', 'y', 'confirm', 'ok', 'sure'].includes(normalized);
+      const original = pendingActionConfirmRequest;
+      pendingActionConfirmRequest = null;
+      if (!approved) {
+        thinking.remove();
+        appendMessage('assistant', 'Action execution canceled. I can still answer without taking page actions.');
+        conversation.push({ role: 'assistant', content: 'Action execution canceled.' });
+        btnSend.disabled = false;
+        promptEl.focus();
+        return;
+      }
+      payload = {
+        ...original,
+        confirmActions: true,
+      };
+    }
+
+    const result = await window.api.ai.chat(payload);
     thinking.remove();
-    appendMessage('assistant', result?.content || '(empty response)');
+
+    if (result?.kind === 'followup_required') {
+      pendingFollowupRequest = {
+        ...payload,
+        followupCount: result.followupCount || 1,
+      };
+      appendMessage('assistant', result.question || 'Could you clarify your request?');
+      conversation.push({ role: 'assistant', content: result.question || 'Could you clarify your request?' });
+      return;
+    }
+
+    if (result?.kind === 'action_confirmation_required') {
+      pendingActionConfirmRequest = { ...payload };
+      appendMessage('assistant', result.question || 'Please confirm this action by replying yes.');
+      conversation.push({ role: 'assistant', content: result.question || 'Please confirm this action by replying yes.' });
+      return;
+    }
+
+    const content = result?.content || '(empty response)';
+    appendMessage('assistant', content);
+    conversation.push({ role: 'assistant', content });
     runtimeBanner.hidden = true;
   } catch (err) {
     thinking.remove();

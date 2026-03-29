@@ -38,6 +38,7 @@ class AIBridgeService {
       modelId: store.get('modelId'),
       modelPath: store.get('modelPath'),
       llamaServerBinaryPath: store.get('llamaServerBinaryPath'),
+      aiOrchestrationV1: store.get('aiOrchestrationV1'),
       runtimeHealthy: this._runtime ? await this._runtime.isHealthy() : false,
       catalog: MODELS,
     };
@@ -122,6 +123,11 @@ class AIBridgeService {
     this._validateBinaryPath(binaryPath);
     store.set('llamaServerBinaryPath', binaryPath);
     return { ok: true };
+  }
+
+  async setOrchestrationEnabled(enabled) {
+    store.set('aiOrchestrationV1', Boolean(enabled));
+    return { ok: true, aiOrchestrationV1: Boolean(enabled) };
   }
 }
 

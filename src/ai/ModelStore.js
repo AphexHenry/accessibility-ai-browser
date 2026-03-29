@@ -12,6 +12,7 @@ const store = new Store({
     runtimePort: 8012,
     runtimeAutoStart: true,
     llamaServerBinaryPath: '',
+    aiOrchestrationV1: false,
   },
 });
 
