@@ -1,0 +1,63 @@
+# OS & editor
+.DS_Store
+*.log
+
+# Dependencies (large)
+node_modules/
+
+# Build & compiled output
+dist/
+build/
+out/
+release/
+*.o
+*.obj
+*.so
+*.dylib
+*.dll
+*.exe
+*.a
+*.lib
+
+# Electron / electron-builder
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+*.snap
+*.blockmap
+*.zip
+*.7z
+
+# Python (if you use scripts/tools)
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+
+# AI / ML weights & caches (large)
+models/
+checkpoints/
+weights/
+embeddings/
+*.gguf
+*.gguf.part
+*.onnx
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+*.h5
+*.mlmodel
+*.tflite
+*.ort
+.cache/huggingface/
+
+# Project-specific bulky dirs
+mozilla-unified/
+obj-browser/
+runtime/
+tmp/

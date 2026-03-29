@@ -1,0 +1,26 @@
+{
+  "name": "accessibility-ai-browser",
+  "version": "0.1.0",
+  "description": "A local-AI-powered accessible browser built on Electron",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder"
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0"
+  },
+  "devDependencies": {
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.accessibility-ai-browser",
+    "productName": "Accessibility AI Browser",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": "dmg"
+    }
+  }
+}

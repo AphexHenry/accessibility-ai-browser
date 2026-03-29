@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline';" />
+  <title>AI Setup</title>
+  <link rel="stylesheet" href="setup.css" />
+</head>
+<body>
+
+  <main class="setup-shell">
+    <header class="setup-header">
+      <div class="setup-icon" aria-hidden="true">🧠</div>
+      <h1 class="setup-title">Local AI Setup</h1>
+      <p class="setup-subtitle">Configure a local model to power the AI chat. Everything runs on your device — no data leaves your machine.</p>
+    </header>
+
+    <!-- Step 1: Runtime binary -->
+    <section class="card" aria-labelledby="step1-heading">
+      <h2 id="step1-heading" class="card-title">
+        <span class="step-badge">1</span>
+        llama-server binary
+      </h2>
+      <p class="card-desc">Path to your compiled <code>llama-server</code> binary (from <a href="#" id="link-llamacpp">llama.cpp</a>).</p>
+      <div class="field-row">
+        <input id="binary-path" type="text" placeholder="/usr/local/bin/llama-server" aria-label="Path to llama-server binary" />
+        <button id="btn-save-binary" class="btn-primary" type="button">Save</button>
+      </div>
+      <p id="binary-status" class="status-msg" aria-live="polite"></p>
+    </section>
+
+    <!-- Step 2: Model -->
+    <section class="card" aria-labelledby="step2-heading">
+      <h2 id="step2-heading" class="card-title">
+        <span class="step-badge">2</span>
+        Model
+      </h2>
+
+      <div class="tabs" role="tablist" aria-label="Model source">
+        <button id="tab-download" class="tab active" role="tab" aria-selected="true" aria-controls="panel-download">Download</button>
+        <button id="tab-existing" class="tab" role="tab" aria-selected="false" aria-controls="panel-existing">Use existing file</button>
+      </div>
+
+      <div id="panel-download" role="tabpanel" aria-labelledby="tab-download">
+        <p class="card-desc">Select a model to download. Files are saved to your profile folder.</p>
+        <label for="model-select" class="sr-only">Choose model</label>
+        <select id="model-select" aria-label="Choose a model to download">
+          <option value="">— Choose a model —</option>
+        </select>
+        <p id="model-info" class="model-info" aria-live="polite"></p>
+        <div class="field-row">
+          <input id="download-dir" type="text" placeholder="~/Downloads/ai-models" aria-label="Download directory" />
+          <button id="btn-download" class="btn-primary" type="button" disabled>Download</button>
+        </div>
+        <div id="progress-wrap" class="progress-wrap" hidden>
+          <progress id="download-progress" max="100" value="0" aria-label="Download progress"></progress>
+          <span id="progress-label" aria-live="polite">0%</span>
+        </div>
+        <p id="download-status" class="status-msg" aria-live="polite"></p>
+      </div>
+
+      <div id="panel-existing" role="tabpanel" aria-labelledby="tab-existing" hidden>
+        <p class="card-desc">Point to a <code>.gguf</code> model file you already have.</p>
+        <div class="field-row">
+          <input id="existing-path" type="text" placeholder="/path/to/model.gguf" aria-label="Path to existing model file" />
+          <button id="btn-use-existing" class="btn-primary" type="button">Use this model</button>
+        </div>
+        <p id="existing-status" class="status-msg" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <footer class="setup-footer">
+      <button id="btn-close" class="btn-secondary" type="button">Done</button>
+    </footer>
+  </main>
+
+  <script src="setup.js"></script>
+</body>
+</html>

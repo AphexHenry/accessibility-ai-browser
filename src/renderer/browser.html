@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline';" />
+  <title>Accessibility AI Browser</title>
+  <link rel="stylesheet" href="browser.css" />
+</head>
+<body>
+
+  <header class="toolbar" role="toolbar" aria-label="Browser controls">
+    <div class="toolbar-nav" role="group" aria-label="Navigation">
+      <button id="btn-back" class="icon-btn" aria-label="Go back" title="Go back" disabled>
+        <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="12 4 6 10 12 16"/>
+        </svg>
+      </button>
+      <button id="btn-forward" class="icon-btn" aria-label="Go forward" title="Go forward" disabled>
+        <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="8 4 14 10 8 16"/>
+        </svg>
+      </button>
+      <button id="btn-reload" class="icon-btn" aria-label="Reload page" title="Reload">
+        <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 4v5h5"/>
+          <path d="M16 16v-5h-5"/>
+          <path d="M4.93 9A8 8 0 1 1 4 14"/>
+        </svg>
+      </button>
+    </div>
+
+    <form id="address-form" class="toolbar-address" role="search" aria-label="Address bar">
+      <input
+        id="address-bar"
+        type="url"
+        autocomplete="off"
+        spellcheck="false"
+        aria-label="Search or enter web address"
+        placeholder="Search or enter address"
+      />
+    </form>
+
+    <div class="toolbar-actions">
+      <button id="btn-ai-toggle" class="ai-toggle-btn" aria-pressed="false" aria-label="Toggle AI Chat sidebar" title="AI Chat">
+        <svg aria-hidden="true" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M2 4a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H6l-4 4V4z"/>
+        </svg>
+        <span>AI Chat</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div id="web-placeholder" class="web-placeholder" aria-hidden="true"></div>
+
+    <aside id="ai-sidebar" class="ai-sidebar" aria-label="AI Chat sidebar" hidden>
+      <div class="sidebar-header">
+        <h2 class="sidebar-title">Local AI</h2>
+        <div class="sidebar-header-actions">
+          <button id="btn-setup" class="text-btn" aria-label="Open model setup">Setup</button>
+          <button id="btn-close-sidebar" class="icon-btn" aria-label="Close sidebar" title="Close">
+            <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <line x1="4" y1="4" x2="16" y2="16"/><line x1="16" y1="4" x2="4" y2="16"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div id="runtime-banner" class="runtime-banner" hidden>
+        <span id="runtime-status-text"></span>
+      </div>
+
+      <div id="messages" class="messages" role="log" aria-live="polite" aria-label="Chat messages" aria-relevant="additions"></div>
+
+      <form id="composer" class="composer">
+        <label for="prompt" class="sr-only">Message</label>
+        <textarea
+          id="prompt"
+          rows="3"
+          placeholder="Ask something about this page…"
+          aria-label="Message input"
+        ></textarea>
+        <button id="btn-send" type="submit" class="send-btn" aria-label="Send message">
+          <svg aria-hidden="true" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M2.5 2l15 8-15 8V12l10-2-10-2V2z"/>
+          </svg>
+        </button>
+      </form>
+    </aside>
+  </div>
+
+  <script src="browser.js"></script>
+</body>
+</html>
