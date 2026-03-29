@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('api', {
   goForward: () => ipcRenderer.send('nav:forward'),
   reload: () => ipcRenderer.send('nav:reload'),
   onUrlChanged: (cb) => ipcRenderer.on('nav:url-changed', (_event, url) => cb(url)),
+  copyPageSemanticMarkdown: () => ipcRenderer.invoke('page:copySemanticMarkdown'),
 
   // Sidebar
   setSidebarOpen: (open) => ipcRenderer.send('sidebar:toggle', open),

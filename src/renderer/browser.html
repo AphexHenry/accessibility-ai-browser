@@ -30,10 +30,11 @@
       </button>
     </div>
 
-    <form id="address-form" class="toolbar-address" role="search" aria-label="Address bar">
+    <form id="address-form" class="toolbar-address" role="search" aria-label="Address bar" novalidate>
       <input
         id="address-bar"
-        type="url"
+        type="text"
+        inputmode="url"
         autocomplete="off"
         spellcheck="false"
         aria-label="Search or enter web address"
@@ -58,6 +59,9 @@
       <div class="sidebar-header">
         <h2 class="sidebar-title">Local AI</h2>
         <div class="sidebar-header-actions">
+          <button id="btn-copy-page" class="text-btn" aria-label="Copy minimized visible page as markdown">
+            Copy page
+          </button>
           <button id="btn-setup" class="text-btn" aria-label="Open model setup">Setup</button>
           <button id="btn-close-sidebar" class="icon-btn" aria-label="Close sidebar" title="Close">
             <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">

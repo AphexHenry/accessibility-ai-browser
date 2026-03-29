@@ -10,6 +10,7 @@ const addressForm    = document.getElementById('address-form');
 const btnAiToggle    = document.getElementById('btn-ai-toggle');
 const sidebar        = document.getElementById('ai-sidebar');
 const btnCloseSidebar= document.getElementById('btn-close-sidebar');
+const btnCopyPage    = document.getElementById('btn-copy-page');
 const btnSetup       = document.getElementById('btn-setup');
 const runtimeBanner  = document.getElementById('runtime-banner');
 const runtimeStatus  = document.getElementById('runtime-status-text');
@@ -57,6 +58,29 @@ function setSidebar(open) {
 
 btnAiToggle.addEventListener('click', () => setSidebar(!sidebarOpen));
 btnCloseSidebar.addEventListener('click', () => setSidebar(false));
+btnCopyPage.addEventListener('click', async () => {
+  btnCopyPage.disabled = true;
+  const initialLabel = btnCopyPage.textContent;
+  btnCopyPage.textContent = 'Copying...';
+  try {
+    const result = await window.api.copyPageSemanticMarkdown();
+    const length = result?.length || 0;
+    const elementCount = result?.elementCount || 0;
+    appendMessage(
+      'assistant',
+      `Copied minimized page markdown + visible element map (${length} chars, ${elementCount} elements).`
+    );
+    btnCopyPage.textContent = 'Copied';
+  } catch (err) {
+    appendMessage('error', 'Could not copy page markdown: ' + err.message);
+    btnCopyPage.textContent = 'Copy failed';
+  } finally {
+    setTimeout(() => {
+      btnCopyPage.textContent = initialLabel;
+      btnCopyPage.disabled = false;
+    }, 1400);
+  }
+});
 btnSetup.addEventListener('click', () => window.api.openSetup());
 
 /* ── Runtime status ──────────────────────────────────────────────────────── */

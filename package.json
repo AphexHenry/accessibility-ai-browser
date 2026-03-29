@@ -9,6 +9,7 @@
     "build": "electron-builder"
   },
   "dependencies": {
+    "dom-to-semantic-markdown": "^1.5.0",
     "electron-store": "^8.2.0"
   },
   "devDependencies": {
