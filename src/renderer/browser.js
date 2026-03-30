@@ -18,6 +18,8 @@ const messagesEl     = document.getElementById('messages');
 const composer       = document.getElementById('composer');
 const promptEl       = document.getElementById('prompt');
 const btnSend        = document.getElementById('btn-send');
+const scamScoreBadge = document.getElementById('scam-score-badge');
+const scamScoreValue = document.getElementById('scam-score-value');
 
 /* ── State ───────────────────────────────────────────────────────────────── */
 
@@ -25,6 +27,45 @@ let sidebarOpen = false;
 const conversation = [];
 let pendingFollowupRequest = null;
 let pendingActionConfirmRequest = null;
+
+function scoreSeverity(score) {
+  if (typeof score !== 'number') return 'medium';
+  if (score <= 3.3) return 'low';
+  if (score <= 6.6) return 'medium';
+  return 'high';
+}
+
+function renderScamBadge(result) {
+  const status = result?.status || 'idle';
+  scamScoreBadge.classList.remove('low', 'medium', 'high');
+
+  if (status === 'running') {
+    scamScoreValue.textContent = 'Analyzing...';
+    scamScoreBadge.classList.add('medium');
+    scamScoreBadge.title = 'Background scam assessment is running.';
+    return;
+  }
+
+  if (status === 'error') {
+    scamScoreValue.textContent = '--/10';
+    scamScoreBadge.classList.add('medium');
+    scamScoreBadge.title = result?.error || 'Scam assessment could not run.';
+    return;
+  }
+
+  if (status === 'done' && typeof result?.score === 'number') {
+    const score = Math.max(0, Math.min(10, result.score));
+    const severity = scoreSeverity(score);
+    scamScoreValue.textContent = `${score.toFixed(1)}/10`;
+    scamScoreBadge.classList.add(severity);
+    scamScoreBadge.title = (result?.reasons || []).join(' | ') || 'Scam likelihood estimated from page and navigation context.';
+    return;
+  }
+
+  scamScoreValue.textContent = '--/10';
+  scamScoreBadge.classList.add('medium');
+  scamScoreBadge.title = 'Scam score unavailable for this page.';
+}
 
 /* ── Navigation ──────────────────────────────────────────────────────────── */
 
@@ -43,6 +84,9 @@ addressBar.addEventListener('focus', () => addressBar.select());
 
 window.api.onUrlChanged((url) => {
   addressBar.value = url;
+});
+window.api.onScamAssessmentUpdated((result) => {
+  renderScamBadge(result);
 });
 
 /* ── Sidebar ─────────────────────────────────────────────────────────────── */
@@ -100,6 +144,15 @@ async function checkRuntimeStatus() {
     }
   } catch {
     showBanner('Could not reach AI service.', false);
+  }
+}
+
+async function initScamBadge() {
+  try {
+    const latest = await window.api.getLatestScamAssessment();
+    renderScamBadge(latest);
+  } catch {
+    renderScamBadge({ status: 'error', error: 'Failed to fetch scam score.' });
   }
 }
 
@@ -205,3 +258,5 @@ promptEl.addEventListener('keydown', (e) => {
     composer.requestSubmit();
   }
 });
+
+initScamBadge();

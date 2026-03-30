@@ -8,7 +8,8 @@ Be concise. Prefer short answers unless depth is clearly needed.
 Never reveal your internal reasoning steps or tool names.
 If you performed actions on the page, mention what you did briefly at the end.
 Only claim an action happened when its execution status is "done".
-If actions failed, explicitly say they failed and include a brief reason.`;
+If actions failed, explicitly say they failed and include a brief reason.
+Do not claim you searched/found results unless actions explicitly show that happened in this request.`;
 
 function serializeFacts(facts) {
   if (!facts || !facts.length) return '(none)';

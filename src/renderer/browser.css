@@ -378,3 +378,74 @@ body {
 .messages::-webkit-scrollbar { width: 5px; }
 .messages::-webkit-scrollbar-track { background: transparent; }
 .messages::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 10px; }
+
+/* ── Scam score badge ─────────────────────────────────────────────────────── */
+
+.scam-score-badge {
+  position: fixed;
+  left: 14px;
+  bottom: 14px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.92);
+  color: #1d1d1f;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  user-select: none;
+  pointer-events: none;
+}
+
+.scam-score-badge .label {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.scam-score-badge .value {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.scam-score-badge.low {
+  border-color: #2e7d32;
+  color: #1b5e20;
+}
+
+.scam-score-badge.medium {
+  border-color: #b7791f;
+  color: #8a4f00;
+}
+
+.scam-score-badge.high {
+  border-color: #c62828;
+  color: #8e1717;
+}
+
+@media (prefers-color-scheme: dark) {
+  .scam-score-badge {
+    background: rgba(22, 22, 24, 0.92);
+    color: #f5f5f7;
+    border-color: #444449;
+  }
+
+  .scam-score-badge.low {
+    border-color: #3fa455;
+    color: #9be7ab;
+  }
+
+  .scam-score-badge.medium {
+    border-color: #d5a14b;
+    color: #ffcb80;
+  }
+
+  .scam-score-badge.high {
+    border-color: #e56262;
+    color: #ff9e9e;
+  }
+}

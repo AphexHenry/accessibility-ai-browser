@@ -5,10 +5,12 @@ const path = require('path');
 const AIBridgeService = require('./ai/AIBridgeService');
 const store = require('./ai/ModelStore');
 const { Orchestrator, ORCHESTRATION_CONFIG } = require('./ai/orchestration');
+const { ScamAssessmentService } = require('./ai/scamAssessment');
 const { simplifyCurrentPage } = require('../AI_tools/html_simplifier');
 
 const TOOLBAR_HEIGHT = 52;
 const SIDEBAR_WIDTH = 380;
+const BOTTOM_BADGE_STRIP_HEIGHT = 44;
 
 let mainWindow = null;
 let contentView = null;
@@ -16,6 +18,19 @@ let setupWindow = null;
 let sidebarOpen = false;
 let aiBridge = null;
 let orchestrator = null;
+let scamAssessment = null;
+let lastCommittedPage = { url: '', title: '' };
+let navigationState = {
+  trigger: { type: 'startup', detail: '' },
+  startedAt: null,
+  startedUrl: '',
+  finalUrl: '',
+  responseCode: null,
+  responseStatusText: '',
+  redirectChain: [],
+  sameDocument: false,
+  previousPage: { url: '', title: '' },
+};
 
 function getActiveWebContents() {
   return contentView?.webContents || null;
@@ -28,6 +43,56 @@ function getPageMeta() {
     url: webContents.getURL() || '',
     title: webContents.getTitle() || '',
   };
+}
+
+function markNavigationTrigger(type, detail = '') {
+  navigationState.trigger = {
+    type: type || 'unknown',
+    detail: String(detail || '').slice(0, 300),
+  };
+}
+
+function wireScamAssessmentNavigation(webContents) {
+  webContents.on('did-start-navigation', (_event, url, isInPlace, isMainFrame) => {
+    if (!isMainFrame) return;
+    navigationState = {
+      trigger: navigationState.trigger || { type: 'unknown', detail: '' },
+      startedAt: Date.now(),
+      startedUrl: url || '',
+      finalUrl: '',
+      responseCode: null,
+      responseStatusText: '',
+      redirectChain: [],
+      sameDocument: Boolean(isInPlace),
+      previousPage: { ...lastCommittedPage },
+    };
+  });
+
+  webContents.on('did-redirect-navigation', (_event, url, _isInPlace, isMainFrame) => {
+    if (!isMainFrame) return;
+    if (url) navigationState.redirectChain.push(url);
+  });
+
+  webContents.on('did-navigate', (_event, url, httpResponseCode, httpStatusText) => {
+    navigationState.finalUrl = url || '';
+    navigationState.responseCode = typeof httpResponseCode === 'number' ? httpResponseCode : null;
+    navigationState.responseStatusText = httpStatusText || '';
+    navigationState.sameDocument = false;
+  });
+
+  webContents.on('did-navigate-in-page', (_event, url, isMainFrame) => {
+    if (!isMainFrame) return;
+    navigationState.finalUrl = url || webContents.getURL() || '';
+    navigationState.sameDocument = true;
+  });
+
+  webContents.on('did-frame-finish-load', async (_event, isMainFrame) => {
+    if (!isMainFrame) return;
+    if (!scamAssessment) return;
+    await scamAssessment.assess(navigationState);
+    lastCommittedPage = getPageMeta();
+    navigationState.trigger = { type: 'implicit', detail: '' };
+  });
 }
 
 async function createWindow() {
@@ -69,6 +134,7 @@ async function createWindow() {
   contentView.webContents.on('page-title-updated', (_event, title) => {
     mainWindow.setTitle(title + ' — Accessibility AI Browser');
   });
+  wireScamAssessmentNavigation(contentView.webContents);
 
   mainWindow.on('resize', updateContentViewBounds);
 }
@@ -81,7 +147,8 @@ function updateContentViewBounds() {
     x: 0,
     y: TOOLBAR_HEIGHT,
     width: width - sidebarW,
-    height: height - TOOLBAR_HEIGHT,
+    // Keep a bottom strip for native UI overlays (e.g. scam score badge).
+    height: Math.max(0, height - TOOLBAR_HEIGHT - BOTTOM_BADGE_STRIP_HEIGHT),
   });
 }
 
@@ -118,16 +185,22 @@ ipcMain.on('nav:load', (_event, url) => {
       target = 'https://www.google.com/search?q=' + encodeURIComponent(target);
     }
   }
+  markNavigationTrigger('address_bar', target);
   contentView.webContents.loadURL(target);
 });
 
 ipcMain.on('nav:back', () => {
+  markNavigationTrigger('history_back');
   if (contentView.webContents.canGoBack()) contentView.webContents.goBack();
 });
 ipcMain.on('nav:forward', () => {
+  markNavigationTrigger('history_forward');
   if (contentView.webContents.canGoForward()) contentView.webContents.goForward();
 });
-ipcMain.on('nav:reload', () => contentView.webContents.reload());
+ipcMain.on('nav:reload', () => {
+  markNavigationTrigger('reload');
+  contentView.webContents.reload();
+});
 
 // ── Sidebar IPC ───────────────────────────────────────────────────────────────
 
@@ -174,6 +247,7 @@ ipcMain.handle('ai:useExistingModel', (_event, modelPath) => aiBridge.useExistin
 ipcMain.handle('ai:setRuntimeBinaryPath', (_event, binaryPath) => aiBridge.setRuntimeBinaryPath(binaryPath));
 ipcMain.handle('ai:setOrchestrationEnabled', (_event, enabled) => aiBridge.setOrchestrationEnabled(enabled));
 ipcMain.handle('ai:getOrchestrationMetrics', () => orchestrator?.metrics?.snapshot?.() || null);
+ipcMain.handle('scam:getLatestAssessment', () => scamAssessment?.getLatest() || null);
 ipcMain.handle('page:copySemanticMarkdown', async () => {
   if (!contentView || contentView.webContents.isDestroyed()) {
     throw new Error('No active page to capture.');
@@ -204,6 +278,17 @@ app.whenReady().then(async () => {
     memoryLookup: async () => [],
     logger: (...args) => console.log(...args),
     openSetup: openSetupWindow,
+  });
+  scamAssessment = new ScamAssessmentService({
+    runtimeChat: (messages) => aiBridge.chat(messages),
+    simplifyCurrentPage,
+    getWebContents: getActiveWebContents,
+    getPageMeta,
+    logger: (...args) => console.log(...args),
+    onResult: (result) => {
+      if (!mainWindow || mainWindow.isDestroyed()) return;
+      mainWindow.webContents.send('scam:assessment-updated', result);
+    },
   });
   await createWindow();
 

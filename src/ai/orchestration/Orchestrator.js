@@ -4,8 +4,7 @@ const { ORCHESTRATION_CONFIG } = require('./config');
 const { createRequestState } = require('./state');
 const { PageSnapshotCache } = require('./cache/pageSnapshotCache');
 const { assessIntent } = require('./modules/m0Intent');
-const { runM0Interaction } = require('./modules/m0Interaction');
-const { runM1 } = require('./modules/m1Scope');
+const { runM0Task } = require('./modules/m0Task');
 const { runM3 } = require('./modules/m3Context');
 const { runM4 } = require('./modules/m4Gap');
 const { runM5 } = require('./modules/m5Budget');
@@ -95,56 +94,62 @@ class Orchestrator {
         allow_shared_actions: state.allow_shared_actions,
       });
 
-      // M0b + M1 + M3 foundation
+      // M0 task router + M3 foundation
       const foundationStart = nowMs();
-      const [m0b, m1, contextFacts] = await Promise.all([
-        runM0Interaction({ state, runtimeChat: this.wrapRuntimeChat(state, 'm0b') }).catch(() => ({
-          interaction_mode: 'inform',
-          action_target: state.allow_shared_actions ? 'shared' : 'none',
-          needs_page_understanding: false,
-          confidence: 0,
-          rationale: 'fallback due to classifier failure',
-          fallback: true,
-        })),
-        runM1({ state, runtimeChat: this.wrapRuntimeChat(state, 'm1') }).catch(() => ({
-          scope: 'page_related',
+      const [taskRouting, contextFacts] = await Promise.all([
+        runM0Task({ state, runtimeChat: this.wrapRuntimeChat(state, 'm0') }).catch(() => ({
+          task_kind: 'general_info',
           confidence: 0,
           rationale: 'fallback due to classifier failure',
           fallback: true,
         })),
         runM3({ state, memoryLookup: this.memoryLookup }),
       ]);
-      state.timings.m0b_m1_m3 = nowMs() - foundationStart;
-      state.interaction_mode = m0b.interaction_mode;
-      state.action_target = m0b.action_target;
-      state.interaction_confidence = m0b.confidence;
-      state.interaction_rationale = m0b.rationale;
-      state.needs_page_understanding = Boolean(m0b.needs_page_understanding);
-      if (state.action_target === 'shared') {
+      state.timings.m0_m3 = nowMs() - foundationStart;
+      state.task_kind = taskRouting.task_kind;
+      state.task_confidence = taskRouting.confidence;
+      state.task_rationale = taskRouting.rationale;
+
+      if (state.task_kind === 'general_info') {
+        state.scope = 'general';
+        state.interaction_mode = 'inform';
+        state.action_target = 'none';
+        state.needs_page_understanding = false;
+      } else if (state.task_kind === 'browser_actions') {
+        state.scope = 'general';
+        state.interaction_mode = 'act';
+        state.action_target = 'shared';
         state.allow_shared_actions = true;
+        state.needs_page_understanding = false;
+      } else if (state.task_kind === 'page_info') {
+        state.scope = 'page_related';
+        state.interaction_mode = 'inform';
+        state.action_target = 'none';
+        state.needs_page_understanding = true;
+      } else {
+        state.scope = 'page_related';
+        state.interaction_mode = 'act';
+        state.action_target = 'page_only';
+        state.needs_page_understanding = true;
       }
-      state.scope = m1.scope;
-      state.scope_confidence = m1.confidence;
-      state.scope_rationale = m1.rationale;
+      state.scope_confidence = state.task_confidence;
+      state.scope_rationale = state.task_rationale;
+      state.interaction_confidence = state.task_confidence;
+      state.interaction_rationale = state.task_rationale;
       state.context_facts = contextFacts;
-      this.log(state, 'm0b.output', {
-        interaction_mode: state.interaction_mode,
-        action_target: state.action_target,
-        needs_page_understanding: state.needs_page_understanding,
-        confidence: state.interaction_confidence,
-        rationale: this.truncateForLog(state.interaction_rationale, 300),
-      });
-      this.log(state, 'm1.scope_decided', { scope: state.scope, confidence: state.scope_confidence });
-      this.log(state, 'm1.output', {
-        scope: state.scope,
-        confidence: state.scope_confidence,
-        rationale: this.truncateForLog(state.scope_rationale, 300),
+      this.log(state, 'm0.output', {
+        task_kind: state.task_kind,
+        confidence: state.task_confidence,
+        rationale: this.truncateForLog(state.task_rationale, 300),
+        mapped_scope: state.scope,
+        mapped_interaction_mode: state.interaction_mode,
+        mapped_action_target: state.action_target,
       });
       this.log(state, 'm3.output', {
         context_facts_count: state.context_facts.length,
       });
 
-      if (state.scope === 'general' && state.interaction_mode === 'inform') {
+      if (state.task_kind === 'general_info') {
         const m7 = await runM7({ state, runtimeChat: this.wrapRuntimeChat(state, 'm7') });
         state.final_response_id = m7.final_response_id;
         this.log(state, 'm7.output', { content: this.truncateForLog(m7.content || '', 600) });
@@ -157,9 +162,7 @@ class Orchestrator {
       }
 
       const webContents = this.getWebContents();
-      const needsPageContext = state.scope === 'page_related'
-        || (state.interaction_mode === 'act' && state.action_target === 'page_only')
-        || state.needs_page_understanding;
+      const needsPageContext = state.task_kind === 'page_info' || state.task_kind === 'page_actions';
       if (needsPageContext && (!webContents || webContents.isDestroyed())) {
         throw new Error('No active page available for this request.');
       }
@@ -233,7 +236,7 @@ class Orchestrator {
               selectedSections: [],
             },
           })),
-          state.interaction_mode === 'act'
+          state.task_kind === 'page_actions'
             ? runM6({ state, runtimeChat: this.wrapRuntimeChat(state, 'm6') }).catch(() => ({
               action_required: false,
               plan: [],
@@ -253,16 +256,16 @@ class Orchestrator {
           finalTokens: budgeted?.metrics?.finalTokens,
           selectedSections: budgeted?.metrics?.selectedSections || [],
         });
-        if (state.interaction_mode === 'act') {
+        if (state.task_kind === 'page_actions') {
           this.log(state, 'm6.output', {
             action_required: state.action_required,
             plan: state.action_plan,
           });
         } else {
-          this.log(state, 'm6.skipped', { reason: 'interaction_mode=inform' });
+          this.log(state, 'm6.skipped', { reason: `task_kind=${state.task_kind}` });
         }
       } else {
-        const actionPlan = state.interaction_mode === 'act'
+        const actionPlan = state.task_kind === 'browser_actions'
           ? await runM6({ state, runtimeChat: this.wrapRuntimeChat(state, 'm6') }).catch(() => ({
             action_required: false,
             plan: [],
@@ -271,13 +274,13 @@ class Orchestrator {
           : { action_required: false, plan: [], skipped: true };
         state.action_required = actionPlan.action_required;
         state.action_plan = actionPlan.plan;
-        if (state.interaction_mode === 'act') {
+        if (state.task_kind === 'browser_actions') {
           this.log(state, 'm6.output', {
             action_required: state.action_required,
             plan: state.action_plan,
           });
         } else {
-          this.log(state, 'm6.skipped', { reason: 'interaction_mode=inform' });
+          this.log(state, 'm6.skipped', { reason: `task_kind=${state.task_kind}` });
         }
       }
 
@@ -338,6 +341,8 @@ class Orchestrator {
       interaction_mode: state.interaction_mode,
       action_target: state.action_target,
       interaction_confidence: state.interaction_confidence,
+      task_kind: state.task_kind,
+      task_confidence: state.task_confidence,
       followup_count: state.followup_count,
       action_required: state.action_required,
       budget_metrics: state.budget_metrics,

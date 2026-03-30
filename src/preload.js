@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('api', {
   reload: () => ipcRenderer.send('nav:reload'),
   onUrlChanged: (cb) => ipcRenderer.on('nav:url-changed', (_event, url) => cb(url)),
   copyPageSemanticMarkdown: () => ipcRenderer.invoke('page:copySemanticMarkdown'),
+  getLatestScamAssessment: () => ipcRenderer.invoke('scam:getLatestAssessment'),
+  onScamAssessmentUpdated: (cb) => ipcRenderer.on('scam:assessment-updated', (_event, result) => cb(result)),
 
   // Sidebar
   setSidebarOpen: (open) => ipcRenderer.send('sidebar:toggle', open),

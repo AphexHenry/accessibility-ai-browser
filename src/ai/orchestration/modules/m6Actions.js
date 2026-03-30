@@ -23,6 +23,11 @@ ${JSON.stringify(allowedActions)}
 
 For action arguments:
 - For "navigateTo", always use args {"target":"<url or query>"}.
+- If the user asks to find/search/look up something, preserve those terms in the plan.
+- Do not return a homepage-only navigation when a search query is clearly requested.
+- Prefer one of:
+  - a URL that already embeds the query (for example with query parameters), or
+  - a query target string that includes the exact search terms.
 
 Respond with JSON:
 {

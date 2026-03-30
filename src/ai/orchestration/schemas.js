@@ -42,6 +42,28 @@ function validateM0InteractionOutput(value) {
   return { ok: true };
 }
 
+function validateM0TaskOutput(value) {
+  if (!isObject(value)) return { ok: false, reason: 'M0 task output must be an object.' };
+  if (
+    value.task_kind !== 'general_info'
+    && value.task_kind !== 'browser_actions'
+    && value.task_kind !== 'page_info'
+    && value.task_kind !== 'page_actions'
+  ) {
+    return {
+      ok: false,
+      reason: 'M0 task_kind must be "general_info", "browser_actions", "page_info", or "page_actions".',
+    };
+  }
+  if (typeof value.confidence !== 'number' || Number.isNaN(value.confidence)) {
+    return { ok: false, reason: 'M0 confidence must be a number.' };
+  }
+  if (!isString(value.rationale)) {
+    return { ok: false, reason: 'M0 rationale must be a string.' };
+  }
+  return { ok: true };
+}
+
 function validateM4Output(value) {
   if (!isObject(value)) return { ok: false, reason: 'M4 output must be an object.' };
   if (typeof value.has_enough_info !== 'boolean') {
@@ -84,6 +106,7 @@ function validateM6Output(value) {
 }
 
 module.exports = {
+  validateM0TaskOutput,
   validateM0InteractionOutput,
   validateM1Output,
   validateM4Output,
