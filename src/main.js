@@ -203,6 +203,7 @@ app.whenReady().then(async () => {
     getWebContents: getActiveWebContents,
     memoryLookup: async () => [],
     logger: (...args) => console.log(...args),
+    openSetup: openSetupWindow,
   });
   await createWindow();
 

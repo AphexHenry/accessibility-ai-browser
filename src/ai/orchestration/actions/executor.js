@@ -3,6 +3,25 @@
 const { clipboard } = require('electron');
 const { getActionSpec } = require('./dictionary');
 
+function normalizeNavigationTarget(value) {
+  let target = String(value || '').trim();
+  if (!target) {
+    return '';
+  }
+  const lowered = target.toLowerCase();
+  if (lowered === 'google' || lowered === 'google.com' || lowered === 'www.google.com') {
+    return 'https://www.google.com';
+  }
+  if (!target.startsWith('http://') && !target.startsWith('https://')) {
+    if (target.includes('.') && !target.includes(' ')) {
+      target = `https://${target}`;
+    } else {
+      target = `https://www.google.com/search?q=${encodeURIComponent(target)}`;
+    }
+  }
+  return target;
+}
+
 function scriptForAction(action, args) {
   const esc = JSON.stringify;
   switch (action) {
@@ -27,7 +46,7 @@ function scriptForAction(action, args) {
   }
 }
 
-async function executeActionPlan({ webContents, actionPlan, allowConfirmActions }) {
+async function executeActionPlan({ webContents, actionPlan, allowConfirmActions, openSetup }) {
   const results = [];
   for (const step of actionPlan) {
     const spec = getActionSpec(step.action);
@@ -42,6 +61,65 @@ async function executeActionPlan({ webContents, actionPlan, allowConfirmActions 
 
     if (step.action === 'copyToClipboard') {
       clipboard.writeText(String(step.args?.text || ''));
+      results.push({ ...step, status: 'done', result: { ok: true } });
+      continue;
+    }
+
+    if (step.action === 'openSetup') {
+      if (typeof openSetup === 'function') {
+        openSetup();
+      }
+      results.push({ ...step, status: 'done', result: { ok: true } });
+      continue;
+    }
+
+    if (!webContents || webContents.isDestroyed()) {
+      results.push({ ...step, status: 'error', result: { ok: false, error: 'no active page' } });
+      continue;
+    }
+
+    if (step.action === 'navigateTo') {
+      const rawTarget = step.args?.target
+        || step.args?.url
+        || step.args?.destination
+        || step.args?.query
+        || step.args?.value;
+      const target = normalizeNavigationTarget(rawTarget);
+      if (!target) {
+        results.push({ ...step, status: 'error', result: { ok: false, error: 'missing target/url argument' } });
+        continue;
+      }
+      try {
+        await webContents.loadURL(target);
+        results.push({ ...step, status: 'done', result: { ok: true, target } });
+      } catch (err) {
+        results.push({ ...step, status: 'error', result: { ok: false, error: err.message } });
+      }
+      continue;
+    }
+
+    if (step.action === 'goBack') {
+      if (!webContents.canGoBack()) {
+        results.push({ ...step, status: 'error', result: { ok: false, error: 'cannot go back' } });
+      } else {
+        webContents.goBack();
+        results.push({ ...step, status: 'done', result: { ok: true } });
+      }
+      continue;
+    }
+
+    if (step.action === 'goForward') {
+      if (!webContents.canGoForward()) {
+        results.push({ ...step, status: 'error', result: { ok: false, error: 'cannot go forward' } });
+      } else {
+        webContents.goForward();
+        results.push({ ...step, status: 'done', result: { ok: true } });
+      }
+      continue;
+    }
+
+    if (step.action === 'reloadPage') {
+      webContents.reload();
       results.push({ ...step, status: 'done', result: { ok: true } });
       continue;
     }

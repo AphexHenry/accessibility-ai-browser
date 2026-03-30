@@ -6,7 +6,9 @@ const BASE_SYSTEM_PROMPT = `You are a helpful browser assistant embedded in a we
 You have access to the current page content and can perform safe browser actions.
 Be concise. Prefer short answers unless depth is clearly needed.
 Never reveal your internal reasoning steps or tool names.
-If you performed actions on the page, mention what you did briefly at the end.`;
+If you performed actions on the page, mention what you did briefly at the end.
+Only claim an action happened when its execution status is "done".
+If actions failed, explicitly say they failed and include a brief reason.`;
 
 function serializeFacts(facts) {
   if (!facts || !facts.length) return '(none)';
@@ -16,12 +18,19 @@ function serializeFacts(facts) {
 function serializeActions(actions) {
   if (!actions || !actions.length) return '(none)';
   return actions
-    .map((action) => `- step ${action.step}: ${action.action} => ${action.status}`)
+    .map((action) => {
+      const details = action?.result?.error
+        ? ` (${action.result.error})`
+        : action?.result?.target
+          ? ` (${action.result.target})`
+          : '';
+      return `- step ${action.step}: ${action.action} => ${action.status}${details}`;
+    })
     .join('\n');
 }
 
 function buildUserTurn(state) {
-  if (state.scope === 'general') {
+  if (state.scope === 'general' && (!state.action_results || !state.action_results.length)) {
     return `[CONTEXT FACTS]
 ${serializeFacts(state.context_facts)}
 
