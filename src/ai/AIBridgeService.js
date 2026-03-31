@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const store = require('./ModelStore');
-const { LlamaCppRuntime } = require('./LlamaCppRuntime');
+const { LlamaCppRuntime, DEFAULT_RUNTIME_CTX_SIZE } = require('./LlamaCppRuntime');
 const { ModelDownloader } = require('./ModelDownloader');
 const { MODELS } = require('./ModelCatalog');
 
@@ -23,6 +23,7 @@ class AIBridgeService {
       port: store.get('runtimePort'),
       binaryPath,
       modelPath,
+      ctxSize: store.get('runtimeCtxSize') || DEFAULT_RUNTIME_CTX_SIZE,
     });
     try {
       this._runtime.start();
@@ -38,6 +39,7 @@ class AIBridgeService {
       modelId: store.get('modelId'),
       modelPath: store.get('modelPath'),
       llamaServerBinaryPath: store.get('llamaServerBinaryPath'),
+      runtimeCtxSize: store.get('runtimeCtxSize') || DEFAULT_RUNTIME_CTX_SIZE,
       aiOrchestrationV1: store.get('aiOrchestrationV1'),
       runtimeHealthy: this._runtime ? await this._runtime.isHealthy() : false,
       catalog: MODELS,
@@ -114,6 +116,7 @@ class AIBridgeService {
       port: store.get('runtimePort'),
       binaryPath,
       modelPath,
+      ctxSize: store.get('runtimeCtxSize') || DEFAULT_RUNTIME_CTX_SIZE,
     });
     this._runtime.start();
     return { ok: true };

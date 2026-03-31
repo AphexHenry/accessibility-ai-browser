@@ -10,6 +10,7 @@ const store = new Store({
     modelPath: '',
     runtimeHost: '127.0.0.1',
     runtimePort: 8012,
+    runtimeCtxSize: 4096,
     runtimeAutoStart: true,
     llamaServerBinaryPath: '',
     aiOrchestrationV1: true,

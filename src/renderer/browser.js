@@ -20,6 +20,7 @@ const promptEl       = document.getElementById('prompt');
 const btnSend        = document.getElementById('btn-send');
 const scamScoreBadge = document.getElementById('scam-score-badge');
 const scamScoreValue = document.getElementById('scam-score-value');
+const scamScoreHelp  = document.getElementById('scam-score-help');
 
 /* ── State ───────────────────────────────────────────────────────────────── */
 
@@ -37,12 +38,16 @@ function scoreSeverity(score) {
 
 function renderScamBadge(result) {
   const status = result?.status || 'idle';
+  const explanation = String(result?.explanation || '').trim();
+  const isFallback = Boolean(result?.fallback);
   scamScoreBadge.classList.remove('low', 'medium', 'high');
 
   if (status === 'running') {
     scamScoreValue.textContent = 'Analyzing...';
     scamScoreBadge.classList.add('medium');
     scamScoreBadge.title = 'Background scam assessment is running.';
+    scamScoreHelp.title = 'AI is analyzing this page now.';
+    scamScoreHelp.setAttribute('aria-label', `Scam assessment explanation. ${scamScoreHelp.title}`);
     return;
   }
 
@@ -50,6 +55,17 @@ function renderScamBadge(result) {
     scamScoreValue.textContent = '--/10';
     scamScoreBadge.classList.add('medium');
     scamScoreBadge.title = result?.error || 'Scam assessment could not run.';
+    scamScoreHelp.title = explanation || 'Scam assessment failed, so no explanation is available.';
+    scamScoreHelp.setAttribute('aria-label', `Scam assessment explanation. ${scamScoreHelp.title}`);
+    return;
+  }
+
+  if (status === 'done' && isFallback) {
+    scamScoreValue.textContent = 'Unknown';
+    scamScoreBadge.classList.add('medium');
+    scamScoreBadge.title = (result?.reasons || []).join(' | ') || 'Scam score unavailable due to invalid model output.';
+    scamScoreHelp.title = explanation || 'The model response could not be parsed, so no numeric score is shown.';
+    scamScoreHelp.setAttribute('aria-label', `Scam assessment explanation. ${scamScoreHelp.title}`);
     return;
   }
 
@@ -59,12 +75,16 @@ function renderScamBadge(result) {
     scamScoreValue.textContent = `${score.toFixed(1)}/10`;
     scamScoreBadge.classList.add(severity);
     scamScoreBadge.title = (result?.reasons || []).join(' | ') || 'Scam likelihood estimated from page and navigation context.';
+    scamScoreHelp.title = explanation || 'Risk estimate is based on page content and recent navigation signals.';
+    scamScoreHelp.setAttribute('aria-label', `Scam assessment explanation. ${scamScoreHelp.title}`);
     return;
   }
 
   scamScoreValue.textContent = '--/10';
   scamScoreBadge.classList.add('medium');
   scamScoreBadge.title = 'Scam score unavailable for this page.';
+  scamScoreHelp.title = 'Scam explanation unavailable.';
+  scamScoreHelp.setAttribute('aria-label', `Scam assessment explanation. ${scamScoreHelp.title}`);
 }
 
 /* ── Navigation ──────────────────────────────────────────────────────────── */

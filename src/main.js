@@ -4,6 +4,8 @@ const { app, BrowserWindow, WebContentsView, ipcMain, clipboard } = require('ele
 const path = require('path');
 const AIBridgeService = require('./ai/AIBridgeService');
 const store = require('./ai/ModelStore');
+const { MODELS } = require('./ai/ModelCatalog');
+const { DEFAULT_RUNTIME_CTX_SIZE } = require('./ai/LlamaCppRuntime');
 const { Orchestrator, ORCHESTRATION_CONFIG } = require('./ai/orchestration');
 const { ScamAssessmentService } = require('./ai/scamAssessment');
 const { simplifyCurrentPage } = require('../AI_tools/html_simplifier');
@@ -42,6 +44,21 @@ function getPageMeta() {
   return {
     url: webContents.getURL() || '',
     title: webContents.getTitle() || '',
+  };
+}
+
+function getModelContextWindowInfo() {
+  const modelId = store.get('modelId');
+  const modelContextTokens = MODELS[modelId]?.contextLength || null;
+  const runtimeContextTokens = Number(store.get('runtimeCtxSize')) || DEFAULT_RUNTIME_CTX_SIZE;
+  const effectiveContextTokens = modelContextTokens
+    ? Math.min(modelContextTokens, runtimeContextTokens)
+    : runtimeContextTokens;
+  return {
+    modelId: modelId || '',
+    modelContextTokens,
+    runtimeContextTokens,
+    effectiveContextTokens,
   };
 }
 
@@ -284,6 +301,7 @@ app.whenReady().then(async () => {
     simplifyCurrentPage,
     getWebContents: getActiveWebContents,
     getPageMeta,
+    getModelContextWindowInfo,
     logger: (...args) => console.log(...args),
     onResult: (result) => {
       if (!mainWindow || mainWindow.isDestroyed()) return;

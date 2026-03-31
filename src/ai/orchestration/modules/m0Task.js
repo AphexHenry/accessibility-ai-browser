@@ -118,6 +118,12 @@ Decision policy:
 - "page_info": user needs information from the current page content/state.
 - "page_actions": user asks to interact with page elements (click/fill/select/scroll/focus/highlight).
 - If user asks to "find/search/look up" something on a website, prefer "browser_actions".
+- If the user refers to the currently open page/site/tab (deictic references like "this page/site/tab", "here", "the page I am on", including equivalent phrasing in any language), classify as page-related:
+  - use "page_info" for analysis, judgment, explanation, summary, risk/safety/trust evaluation, or questions about what is shown.
+  - use "page_actions" only when an on-page interaction is requested.
+- A request is "general_info" only when it can be answered independently of the current tab content/state.
+- When uncertain between "general_info" and "page_info", prefer "page_info" if the request appears grounded in the current tab.
+- Do not treat subjective wording (e.g., opinions) as a reason to avoid page-related routing when the request is about the current page.
 - Choose exactly one task kind.`;
 }
 

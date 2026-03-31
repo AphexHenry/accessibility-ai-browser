@@ -1,0 +1,30 @@
+{
+  "note": "Domains in Type A that still require content scanning because they host user-generated content at the path level.",
+  "count": 24,
+  "domains": [
+    "airtable.com",
+    "blob.core.windows.net",
+    "coda.io",
+    "discord.gg",
+    "dl.dropboxusercontent.com",
+    "docs.google.com",
+    "drive.google.com",
+    "dropbox.com",
+    "firebasestorage.googleapis.com",
+    "forms.gle",
+    "jotform.com",
+    "l.facebook.com",
+    "notion.so",
+    "onedrive.live.com",
+    "s3.amazonaws.com",
+    "sendspace.com",
+    "sharepoint.com",
+    "sites.google.com",
+    "storage.googleapis.com",
+    "t.me",
+    "typeform.com",
+    "weebly.com",
+    "wetransfer.com",
+    "wix.com"
+  ]
+}

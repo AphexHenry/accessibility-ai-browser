@@ -3,12 +3,15 @@
 const { spawn } = require('child_process');
 const http = require('http');
 
+const DEFAULT_RUNTIME_CTX_SIZE = 4096;
+
 class LlamaCppRuntime {
-  constructor({ host, port, binaryPath, modelPath }) {
+  constructor({ host, port, binaryPath, modelPath, ctxSize = DEFAULT_RUNTIME_CTX_SIZE }) {
     this.host = host;
     this.port = port;
     this.binaryPath = binaryPath;
     this.modelPath = modelPath;
+    this.ctxSize = Number(ctxSize) > 0 ? Number(ctxSize) : DEFAULT_RUNTIME_CTX_SIZE;
     this._process = null;
   }
 
@@ -21,7 +24,7 @@ class LlamaCppRuntime {
       '--model', this.modelPath,
       '--host', this.host,
       '--port', String(this.port),
-      '--ctx-size', '4096',
+      '--ctx-size', String(this.ctxSize),
     ]);
     this._process.on('error', (err) => {
       console.error('[LlamaCppRuntime] process error:', err.message);
@@ -85,4 +88,7 @@ class LlamaCppRuntime {
   }
 }
 
-module.exports = { LlamaCppRuntime };
+module.exports = {
+  LlamaCppRuntime,
+  DEFAULT_RUNTIME_CTX_SIZE,
+};

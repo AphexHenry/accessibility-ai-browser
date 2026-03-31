@@ -35,6 +35,12 @@ function normalizeReasons(value) {
     .slice(0, 4);
 }
 
+function normalizeExplanation(value, fallback) {
+  const text = String(value || '').trim();
+  if (!text) return fallback;
+  return text.slice(0, 200);
+}
+
 function parseAssessment(content) {
   const parsed = safeJsonParse(content);
   if (!parsed || typeof parsed !== 'object') {
@@ -44,6 +50,7 @@ function parseAssessment(content) {
       verdict: 'medium',
       reasons: ['Model response could not be parsed safely.'],
       recommended_user_action: 'Be cautious and verify the site independently.',
+      explanation: 'Assessment details are unavailable because the model response was invalid.',
       fallback: true,
     };
   }
@@ -56,6 +63,10 @@ function parseAssessment(content) {
     reasons: normalizeReasons(parsed.reasons),
     recommended_user_action: String(parsed.recommended_user_action || '').trim()
       || 'Be cautious and verify the site independently.',
+    explanation: normalizeExplanation(
+      parsed.explanation,
+      'Risk estimate is based on page content and recent navigation signals.'
+    ),
     fallback: false,
   };
 }

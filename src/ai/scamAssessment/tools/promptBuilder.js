@@ -10,7 +10,8 @@ Output strict JSON only:
   "confidence": 0.0-1.0,
   "verdict": "low" | "medium" | "high",
   "reasons": ["short bullet", "short bullet", "short bullet"],
-  "recommended_user_action": "one short sentence"
+  "recommended_user_action": "one short sentence",
+  "explanation": "very short explanation under 200 characters"
 }
 
 Scoring policy:
@@ -19,6 +20,7 @@ Scoring policy:
 - Use conservative scoring when evidence is weak.
 - Never invent facts. If information is missing, lower confidence.
 - Keep reasons short and grounded in provided data.
+- Keep explanation plain language and under 200 characters.
 
 [PAGE META]
 URL: ${pageMeta?.url || ''}

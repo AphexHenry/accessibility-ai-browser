@@ -398,7 +398,7 @@ body {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   user-select: none;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .scam-score-badge .label {
@@ -410,6 +410,28 @@ body {
 .scam-score-badge .value {
   font-size: 13px;
   font-weight: 700;
+}
+
+.scam-score-help {
+  width: 18px;
+  height: 18px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.9;
+}
+
+.scam-score-help:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .scam-score-badge.low {
